@@ -50,13 +50,14 @@ module Fluent::Plugin
       while result = io.gets
         keys_size = @keys.size
         if result =~ /(?<lstart>(^\w+\s+\w+\s+\d+\s+\d\d:\d\d:\d\d \d+))/
-          lstart = Time.parse($~[:lstart])
-          result = result.sub($~[:lstart], '')
-          keys_size -= 1
+          lstart = Time.parse($~[:lstart]).to_s
+          values = [lstart] + result.sub($~[:lstart], '').chomp.strip.split(/\s+/, keys_size - 1)
+          data = Hash[@keys.zip(values.reject(&:empty?).flatten)]
+          data['elapsed_time'] = (Time.now - Time.parse(data['start_time'])).to_i if data['start_time']
+        else
+          values = result.chomp.strip.split(/\s+/, keys_size)
+          data = Hash[@keys.zip(values.reject(&:empty?).flatten)]
         end
-        values = [lstart.to_s, result.chomp.strip.split(/\s+/, keys_size)]
-        data = Hash[@keys.zip(values.reject(&:empty?).flatten)]
-        data['elapsed_time'] = (Time.now - Time.parse(data['start_time'])).to_i if data['start_time']
         next unless @lookup_user.nil? || @lookup_user.include?(data['user'])
         emit_tag = tag.dup
         filter_record(emit_tag, Fluent::Engine.now, data)
@@ -72,6 +73,37 @@ module Fluent::Plugin
         "LANG=en_US.UTF-8 && ps -ewwo lstart,user:20,pid,ppid,time,%cpu,%mem,rss,sz,s,comm,cmd"
       elsif OS.mac?
         "LANG=en_US.UTF-8 && ps -ewwo lstart,user,pid,ppid,time,%cpu,%mem,rss,vsz,state,comm,command"
+      elsif OS.windows?
+        command = "powershell -command \"ps | %{
+                    $record = [PSCustomObject]@{
+                      start_time='-';
+                      user='-';
+                      pid=0;
+                      parent_pid=0;
+                      cpu_time='-';
+                      cpu_percent=0;
+                      memory_percent=0;
+                      mem_rss=0;
+                      mem_size=0;
+                      state='-';
+                      proc_name='-';
+                      command='-';
+                    };
+                    if($_.StartTime -ne $null) {
+                      $record.start_time = $_.StartTime.ToString(
+                        'ddd MMM dd HH:mm:ss yyyy',
+                        [Globalization.CultureInfo]::GetCultureInfo('en-US').DateTimeFormat
+                        );
+                    };
+                    if($_.Id -ne $null) { $record.pid = $_.Id; };
+                    if($_.UserProcessorTime -ne $null) { $record.cpu_time = $_.UserProcessorTime; };
+                    if($_.CPU -ne $null) { $record.cpu_percent = $_.CPU; };
+                    if($_.WorkingSet -ne $null) { $record.mem_rss = $_.WorkingSet; };
+                    if($_.VirtualMemorySize -ne $null) { $record.mem_size = $_.VirtualMemorySize; };
+                    if($_.Name -ne $null) { $record.proc_name = $_.Name; };
+                    if($_.Path -ne $null) { $record.command = $_.Path; };
+                    return $record;
+                  } | Format-Table -Property * -HideTableHeaders\""
       end
     end
 
