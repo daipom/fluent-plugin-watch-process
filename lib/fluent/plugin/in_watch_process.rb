@@ -219,6 +219,9 @@ module Fluent::Plugin
           # You can use "Datetime.ToString" method to change format of datetime values in for-each pipe.
           # Note: About "DateTime.ToString" method: https://docs.microsoft.com/en-us/dotnet/api/system.datetime.tostring
           # Note: About "Custom date and time format strings": https://docs.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings
+          unless @keys.include?("start_time")
+            return ""
+          end
           " | %{
             $_.StartTime = $_.StartTime.ToString(
               '#{format}',
