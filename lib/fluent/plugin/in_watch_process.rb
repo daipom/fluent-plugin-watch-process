@@ -202,8 +202,8 @@ module Fluent::Plugin
         end
 
         def pipe_select_columns
-          columns = DEFAULT_PARAMS.keys.map { |key|
-            next unless @keys.include?(key)
+          columns = @keys.map { |key|
+            next unless DEFAULT_PARAMS.keys.include?(key)
             DEFAULT_PARAMS[key]
           }.compact
 
