@@ -29,6 +29,7 @@ module Fluent::Plugin
       super
 
       @watcher = Watcher.get_watcher(@keys, @command)
+      apply_default_types
       log.info "watch_process: polling start. :tag=>#{@tag} :lookup_user=>#{@lookup_user} :interval=>#{@interval} :command=>#{@watcher.command}"
     end
 
@@ -39,6 +40,12 @@ module Fluent::Plugin
 
     def shutdown
       super
+    end
+
+    def apply_default_types
+      return unless @types.nil?
+      @types = @watcher.default_types
+      @type_converters = parse_types_parameter unless @types.nil?
     end
 
     def on_timer
@@ -74,6 +81,10 @@ module Fluent::Plugin
           @command = command
         end
 
+        def default_types
+          raise NotImplementedError, "Need to override #{self.class}##{__method__}."
+        end
+
         def parse_line(line)
           raise NotImplementedError, "Need to override #{self.class}##{__method__}."
         end
@@ -103,11 +114,14 @@ module Fluent::Plugin
 
       class BaseUnixLike < Base
         DEFAULT_KEYS = %w(start_time user pid parent_pid cpu_time cpu_percent memory_percent mem_rss mem_size state proc_name command)
-        DEFAULT_TYPES = "pid:integer,parent_pid:integer,cpu_percent:float,memory_percent:float,mem_rss:integer,mem_size:integer"
 
         def initialize(keys, command)
           super(keys, command)
           @keys = @keys || DEFAULT_KEYS
+        end
+
+        def default_types
+          "pid:integer,parent_pid:integer,cpu_percent:float,memory_percent:float,mem_rss:integer,mem_size:integer"
         end
 
         def parse_line(line)
@@ -159,12 +173,15 @@ module Fluent::Plugin
           "handles" => "HandleCount",
           "proc_name" => "ProcessName",
         }
-        DEFAULT_TYPES = "sid:integer,pid:integer,cpu_second:float,working_set:integer,virtual_memory_size:integer,handles:integer"
 
         def initialize(keys, command)
           super(keys, command)
           @keys = @keys || DEFAULT_PARAMS.keys
           @command = @command || default_command
+        end
+
+        def default_types
+          "sid:integer,pid:integer,cpu_second:float,working_set:integer,virtual_memory_size:integer,handles:integer"
         end
 
         def parse_line(line)
