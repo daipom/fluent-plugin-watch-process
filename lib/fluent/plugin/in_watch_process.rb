@@ -68,7 +68,7 @@ module Fluent::Plugin
         elsif OS.windows?
           Windows.new(keys, command)
         else
-          raise NotImplementedError, "This OS type is not supported."
+          Linux.new(keys, command)
         end
       end
 
