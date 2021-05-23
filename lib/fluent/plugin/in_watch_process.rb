@@ -1,5 +1,5 @@
 require 'time'
-require 'csv'
+require 'csv' if Fluent.windows?
 require "fluent/plugin/input"
 require 'fluent/mixin/rewrite_tag_name'
 require 'fluent/mixin/type_converter'
@@ -117,11 +117,18 @@ module Fluent::Plugin
 
         def initialize(keys, command)
           super(keys, command)
-          @keys = @keys || DEFAULT_KEYS
+          @keys ||= DEFAULT_KEYS
         end
 
         def default_types
-          "pid:integer,parent_pid:integer,cpu_percent:float,memory_percent:float,mem_rss:integer,mem_size:integer"
+          %w(
+            pid:integer
+            parent_pid:integer
+            cpu_percent:float
+            memory_percent:float
+            mem_rss:integer
+            mem_size:integer
+          ).join(",")
         end
 
         def parse_line(line)
@@ -146,7 +153,7 @@ module Fluent::Plugin
 
         def initialize(keys, command)
           super(keys, command)
-          @command = @command || DEFAULT_COMMAND
+          @command ||= DEFAULT_COMMAND
         end
       end
 
@@ -155,7 +162,7 @@ module Fluent::Plugin
 
         def initialize(keys, command)
           super(keys, command)
-          @command = @command || DEFAULT_COMMAND
+          @command ||= DEFAULT_COMMAND
         end
       end
 
@@ -176,12 +183,19 @@ module Fluent::Plugin
 
         def initialize(keys, command)
           super(keys, command)
-          @keys = @keys || DEFAULT_PARAMS.keys
-          @command = @command || default_command
+          @keys ||= DEFAULT_PARAMS.keys
+          @command ||= default_command
         end
 
         def default_types
-          "sid:integer,pid:integer,cpu_second:float,working_set:integer,virtual_memory_size:integer,handles:integer"
+          %w(
+            sid:integer
+            pid:integer
+            cpu_second:float
+            working_set:integer
+            virtual_memory_size:integer
+            handles:integer
+          ).join(",")
         end
 
         def parse_line(line)
@@ -236,9 +250,8 @@ module Fluent::Plugin
           # You can use "Datetime.ToString" method to change format of datetime values in for-each pipe.
           # Note: About "DateTime.ToString" method: https://docs.microsoft.com/en-us/dotnet/api/system.datetime.tostring
           # Note: About "Custom date and time format strings": https://docs.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings
-          unless @keys.include?("start_time")
-            return ""
-          end
+          return "" unless @keys.include?("start_time")
+
           " | %{
             $_.StartTime = $_.StartTime.ToString(
               '#{format}',
