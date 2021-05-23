@@ -73,7 +73,7 @@ $ tail -f /var/log/td-agent/td-agent.log
 * keys (Optional)
   * output record keys of the ps command results
   * [default] Linux, MacOSX: `start_time,user,pid,parent_pid,cpu_time,cpu_percent,memory_percent,mem_rss,mem_size,state,proc_name,command`
-    * need to fix `command` to match this.
+    * need to modify `command` too if you modify this value.
   * [default] Windows: `start_time,user,sid,pid,cpu_second,working_set,virtual_memory_size,handles,proc_name`
     * in Windows only, you can fix this without fixing `command`, unless you specify a key other than the default.
     * `user` key needs administrator privilege. You can exclude this to avoid needing administrator privilege.
