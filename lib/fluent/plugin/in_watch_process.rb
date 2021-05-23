@@ -61,15 +61,17 @@ module Fluent::Plugin
 
     module Watcher
       def self.get_watcher(keys, command)
-        if OS.linux?
-          Linux.new(keys, command)
-        elsif OS.mac?
+        if mac?
           Mac.new(keys, command)
-        elsif OS.windows?
+        elsif Fluent.windows?
           Windows.new(keys, command)
         else
           Linux.new(keys, command)
         end
+      end
+
+      def self.mac?
+        (/darwin/ =~ RUBY_PLATFORM) != nil
       end
 
       class Base
@@ -276,25 +278,6 @@ module Fluent::Plugin
           # By the "NoTypeInformation" option, the line of type info is excluded.
           # This enables you to skip the just first line for parsing, like linux or mac.
           " | ConvertTo-Csv -NoTypeInformation"
-        end
-      end
-
-      module OS
-        # ref. http://stackoverflow.com/questions/170956/how-can-i-find-which-operating-system-my-ruby-program-is-running-on
-        def self.windows?
-          (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
-        end
-
-        def self.mac?
-         (/darwin/ =~ RUBY_PLATFORM) != nil
-        end
-
-        def self.unix?
-          !windows?
-        end
-
-        def self.linux?
-          unix? and not mac?
         end
       end
     end
