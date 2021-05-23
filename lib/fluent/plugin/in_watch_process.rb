@@ -200,7 +200,13 @@ module Fluent::Plugin
 
         def parse_line(line)
           values = line.chomp.strip.parse_csv.map { |e| e ? e : "" }
-          Hash[@keys.zip(values)]
+          data = Hash[@keys.zip(values)]
+
+          unless data["start_time"].nil?
+            data["start_time"] = format_datetime(data["start_time"])
+          end
+
+          data
         end
 
         def default_command
@@ -215,6 +221,10 @@ module Fluent::Plugin
         end
 
         private
+
+        def format_datetime(datetime)
+          Time.parse(datetime).to_s
+        end
 
         def command_ps
           if @keys.include?("user")
